@@ -84,7 +84,6 @@ with tab_detect:
 
         if st.button("▶️ ตรวจจับ", type="primary") and chosen:
             from sklearn.metrics import classification_report, confusion_matrix
-            import seaborn as sns
 
             results = df_det.copy()
 
@@ -130,16 +129,21 @@ with tab_detect:
                     ac1.metric("Accuracy (threshold=0.5)", f"{acc_05:.2f}%")
                     ac2.metric("Accuracy (tuned threshold)", f"{acc_tuned:.2f}%")
 
-                    # --- confusion matrix heatmap ---
+                    # --- confusion matrix heatmap (matplotlib ล้วน) ---
                     cm = confusion_matrix(yt, pred)
                     fig, ax = plt.subplots(figsize=(5, 3.5))
-                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
-                                xticklabels=[f'Pred Benign', f'Pred {atk}'],
-                                yticklabels=[f'Actual Benign', f'Actual {atk}'], ax=ax)
+                    im = ax.imshow(cm, cmap='Blues')
+                    for (i, j), v in np.ndenumerate(cm):
+                        ax.text(j, i, f"{v:,}", ha="center", va="center",
+                                color="white" if v > cm.max()/2 else "black", fontsize=14)
+                    ax.set_xticks([0, 1]); ax.set_yticks([0, 1])
+                    ax.set_xticklabels([f'Pred Benign', f'Pred {atk}'])
+                    ax.set_yticklabels([f'Actual Benign', f'Actual {atk}'])
                     ax.set_title(f'Confusion Matrix: Benign vs {atk} '
                                  f'[{meta["model_type"]}] (threshold={thr:.3f})')
                     ax.set_ylabel('Reality')
                     ax.set_xlabel('AI Prediction')
+                    fig.colorbar(im, fraction=0.046)
                     fig.tight_layout()
                     st.pyplot(fig)
                     plt.close(fig)
