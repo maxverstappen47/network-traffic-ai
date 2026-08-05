@@ -64,10 +64,28 @@ with tab_detect:
         has_lbl_det = label_col_det is not None
         feats_det = [c for c in df_det.columns if c != label_col_det]
 
-        c1, c2, c3 = st.columns(3)
-        c1.metric("แถว", f"{len(df_det):,}")
-        c2.metric("feature ในไฟล์", len(feats_det))
-        c3.metric("มี Label?", "มี ✅" if has_lbl_det else "ไม่มี (ทำนายอย่างเดียว)")
+        # --- สรุปข้อมูลแบบ v4 ---
+        if has_lbl_det:
+            y_det, atk_name_det = core.make_binary_target(df_det, label_col_det)
+            n_benign = int((y_det == 0).sum())
+            n_attack = int((y_det == 1).sum())
+            summary_text = (
+                f"{'='*50}\n"
+                f"  โหลดข้อมูล: {atk_name_det}\n"
+                f"{'='*50}\n"
+                f"  BENIGN  : {n_benign:,}\n"
+                f"  {atk_name_det:<10}: {n_attack:,}\n"
+                f"  รวม     : {len(df_det):,} แถว, {len(feats_det)} features"
+            )
+        else:
+            summary_text = (
+                f"{'='*50}\n"
+                f"  โหลดข้อมูล\n"
+                f"{'='*50}\n"
+                f"  รวม     : {len(df_det):,} แถว, {len(feats_det)} features\n"
+                f"  (ไม่มีคอลัมน์ Label — ทำนายอย่างเดียว)"
+            )
+        st.code(summary_text, language=None)
 
         # เช็คว่าแต่ละโมเดลใช้ feature อะไร และไฟล์มีครบไหม
         with st.expander("ดู feature ที่แต่ละโมเดลต้องการ vs ไฟล์ที่อัป"):
