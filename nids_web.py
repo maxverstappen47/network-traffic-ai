@@ -83,12 +83,14 @@ with tab_detect:
         chosen = st.multiselect("เลือกโมเดล", bundles, default=bundles, key="det_models")
 
         if st.button("▶️ ตรวจจับ", type="primary") and chosen:
+            from sklearn.metrics import classification_report, confusion_matrix
+            import seaborn as sns
+
             results = df_det.copy()
-            rows = []
+
             for atk in chosen:
                 try:
                     model, meta = core.load_bundle(atk)
-                    # ใช้ df_det (ไฟล์ต้นฉบับ) ตรงๆ — โมเดลหยิบ feature เอง
                     proba, pred = core.predict_with_bundle(model, meta, df_det)
                 except KeyError as e:
                     missing_list = e.args[0] if isinstance(e.args[0], list) else [str(e)]
@@ -98,36 +100,63 @@ with tab_detect:
                 except Exception as e:
                     st.error(f"{atk}: {e}")
                     continue
+
                 results[f"proba_{atk}"] = np.round(proba, 4)
                 results[f"pred_{atk}"] = pred
-                row = {"โมเดล": atk, "ชนิด": meta["model_type"],
-                       "threshold": round(meta["threshold"], 3),
-                       "flag เป็น attack": int(pred.sum()),
-                       "ปกติ": int((pred == 0).sum())}
+
+                st.markdown(f"## {atk}  `[{meta['model_type'].upper()}]`")
+
                 if has_lbl_det:
                     yt, _ = core.make_binary_target(df_det, label_col_det)
-                    from sklearn.metrics import precision_recall_fscore_support
-                    p, r, f1, _ = precision_recall_fscore_support(
-                        yt, pred, average="binary", zero_division=0)
-                    row.update(precision=round(p, 3), recall=round(r, 3), f1=round(f1, 3))
-                rows.append(row)
 
-            if rows:
-                st.markdown("#### ผลตรวจจับ")
-                st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+                    # --- threshold = 0.5 ---
+                    pred_05 = (proba >= 0.5).astype(int)
+                    report_05 = classification_report(
+                        yt, pred_05, target_names=["Benign", atk], zero_division=0)
+                    st.markdown(f"#### Threshold = 0.5 (ค่าเริ่มต้น)")
+                    st.code(report_05, language=None)
 
-                total_flagged = sum(r["flag เป็น attack"] for r in rows)
-                st.metric("รวม flow ที่ถูก flag", f"{total_flagged:,} / {len(df_det):,}")
+                    # --- tuned threshold ---
+                    thr = meta["threshold"]
+                    report_tuned = classification_report(
+                        yt, pred, target_names=["Benign", atk], zero_division=0)
+                    st.markdown(f"#### Threshold = {thr:.3f} (tuned เพื่อ F1 สูงสุด)")
+                    st.code(report_tuned, language=None)
 
-                pred_cols = [c for c in results.columns if c.startswith(("pred_", "proba_"))]
-                show = ([label_col_det] if has_lbl_det else []) + pred_cols
-                st.markdown("#### ตัวอย่างผลราย flow (30 แถวแรก)")
-                st.dataframe(results[show].head(30), use_container_width=True)
-                st.download_button(
-                    "⬇️ ดาวน์โหลดผลตรวจจับ (.csv)",
-                    results.to_csv(index=False).encode("utf-8-sig"),
-                    file_name=up_detect.name.rsplit(".", 1)[0] + "_detected.csv",
-                    mime="text/csv")
+                    # --- accuracy ---
+                    acc_05 = (yt == pred_05).mean() * 100
+                    acc_tuned = (yt == pred).mean() * 100
+                    ac1, ac2 = st.columns(2)
+                    ac1.metric("Accuracy (threshold=0.5)", f"{acc_05:.2f}%")
+                    ac2.metric("Accuracy (tuned threshold)", f"{acc_tuned:.2f}%")
+
+                    # --- confusion matrix heatmap ---
+                    cm = confusion_matrix(yt, pred)
+                    fig, ax = plt.subplots(figsize=(5, 3.5))
+                    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                                xticklabels=[f'Pred Benign', f'Pred {atk}'],
+                                yticklabels=[f'Actual Benign', f'Actual {atk}'], ax=ax)
+                    ax.set_title(f'Confusion Matrix: Benign vs {atk} '
+                                 f'[{meta["model_type"]}] (threshold={thr:.3f})')
+                    ax.set_ylabel('Reality')
+                    ax.set_xlabel('AI Prediction')
+                    fig.tight_layout()
+                    st.pyplot(fig)
+                    plt.close(fig)
+
+                else:
+                    # ไม่มี label — แสดงสรุปอย่างเดียว
+                    st.metric(f"flow ที่ถูก flag เป็น {atk}",
+                              f"{int(pred.sum()):,} / {len(pred):,}")
+
+                st.markdown("---")
+
+            # ดาวน์โหลดผล
+            st.download_button(
+                "⬇️ ดาวน์โหลดผลตรวจจับ (.csv)",
+                results.to_csv(index=False).encode("utf-8-sig"),
+                file_name=up_detect.name.rsplit(".", 1)[0] + "_detected.csv",
+                mime="text/csv")
 
 # =====================================================
 # TAB 2 : FEATURE TOOL (อิสระ — ไม่กระทบ Detect)
