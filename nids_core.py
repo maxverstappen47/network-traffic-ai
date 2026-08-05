@@ -359,4 +359,5 @@ def train_one_attack(df, label_col, model_type, epochs=EPOCHS_DEFAULT,
                    threshold=thr, n_train=int(len(y_tr)), n_test=int(len(y_te)))
     return dict(attack=attack, model=model, model_type=model_type, scaler=scaler,
                 threshold=thr, features=features, input_dim=input_dim,
-                metrics=metrics, cm=confusion_matrix(y_te, y_pred))
+                metrics=metrics, cm=confusion_matrix(y_te, y_pred),
+                y_te=y_te, y_prob=y_prob)
