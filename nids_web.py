@@ -454,6 +454,27 @@ with tab_detect:
                     st.pyplot(fig)
                     plt.close(fig)
 
+                    # probability distribution (split by actual class)
+                    proba_benign = proba[yt == 0]
+                    proba_attack = proba[yt == 1]
+                    fig, ax = styled_fig(8, 3.5)
+                    ax.hist(proba_benign, bins=50, color="#3b82f6", alpha=0.7,
+                            edgecolor="white", linewidth=0.5,
+                            label=f"Actual Benign ({len(proba_benign):,})")
+                    ax.hist(proba_attack, bins=50, color="#ef4444", alpha=0.7,
+                            edgecolor="white", linewidth=0.5,
+                            label=f"Actual {atk} ({len(proba_attack):,})")
+                    ax.axvline(thr, color="#1e293b", linestyle="--", linewidth=2,
+                               label=f"Threshold = {thr:.3f}")
+                    ax.set_title(f"Probability Distribution: {atk}",
+                                 fontsize=11, fontweight="bold", color="#1e293b")
+                    ax.set_xlabel(f"P({atk})", fontsize=9)
+                    ax.set_ylabel("Number of flows", fontsize=9)
+                    ax.legend(fontsize=9, loc="upper center")
+                    fig.tight_layout()
+                    st.pyplot(fig)
+                    plt.close(fig)
+
                 else:
                     thr = meta["threshold"]
                     n_total = len(pred)
@@ -512,15 +533,22 @@ with tab_detect:
                                   fontsize=10, fontweight="bold", color="#1e293b")
                     ax1.set_ylabel("Number of flows", fontsize=9)
 
-                    ax2.hist(proba, bins=50, color="#3b82f6", edgecolor="white",
-                             alpha=0.85, linewidth=0.5)
-                    ax2.axvline(thr, color="#ef4444", linestyle="--", linewidth=2,
-                               label=f"threshold={thr:.3f}")
+                    # split histogram by predicted class
+                    proba_pred_ben = proba[pred == 0]
+                    proba_pred_atk = proba[pred == 1]
+                    ax2.hist(proba_pred_ben, bins=50, color="#3b82f6", alpha=0.7,
+                             edgecolor="white", linewidth=0.5,
+                             label=f"Predicted Benign ({len(proba_pred_ben):,})")
+                    ax2.hist(proba_pred_atk, bins=50, color="#ef4444", alpha=0.7,
+                             edgecolor="white", linewidth=0.5,
+                             label=f"Predicted {atk} ({len(proba_pred_atk):,})")
+                    ax2.axvline(thr, color="#1e293b", linestyle="--", linewidth=2,
+                               label=f"Threshold = {thr:.3f}")
                     ax2.set_title("Probability Distribution",
                                   fontsize=10, fontweight="bold", color="#1e293b")
                     ax2.set_xlabel(f"P({atk})", fontsize=9)
                     ax2.set_ylabel("Number of flows", fontsize=9)
-                    ax2.legend(fontsize=8)
+                    ax2.legend(fontsize=7, loc="upper center")
                     fig.tight_layout()
                     st.pyplot(fig)
                     plt.close(fig)
