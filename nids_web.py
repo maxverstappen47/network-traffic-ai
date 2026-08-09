@@ -491,12 +491,15 @@ with tab_detect:
                     ac2.metric(f"Flag เป็น {atk}", f"{n_atk:,}")
 
                     # charts
-                    fig, (ax1, ax2) = styled_fig(9, 3.5)
-                    ax2 = fig.add_subplot(122, facecolor=CHART_BG)
-                    ax2.spines["top"].set_visible(False)
-                    ax2.spines["right"].set_visible(False)
-                    ax2.spines["left"].set_color("#cbd5e1")
-                    ax2.spines["bottom"].set_color("#cbd5e1")
+                    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(9, 3.5),
+                                                    facecolor=CHART_BG)
+                    for _ax in (ax1, ax2):
+                        _ax.set_facecolor(CHART_BG)
+                        _ax.spines["top"].set_visible(False)
+                        _ax.spines["right"].set_visible(False)
+                        _ax.spines["left"].set_color("#cbd5e1")
+                        _ax.spines["bottom"].set_color("#cbd5e1")
+                        _ax.tick_params(colors="#64748b", labelsize=9)
 
                     bars = ax1.bar(["Benign", atk], [n_ben, n_atk],
                                    color=["#3b82f6", "#ef4444"], width=0.5,
