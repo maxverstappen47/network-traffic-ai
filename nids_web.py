@@ -280,7 +280,7 @@ with st.sidebar:
             <div style="background:#1e293b; border:1px solid #334155; border-radius:8px;
                         padding:0.4rem 0.8rem; margin:0.3rem 0; font-size:0.82rem;
                         display:flex; justify-content:space-between; align-items:center;">
-                <span>🎯 {b}</span>
+                <span>{b}</span>
                 <span style="color:#4ade80; font-size:0.7rem;">READY</span>
             </div>
             """, unsafe_allow_html=True)
@@ -403,7 +403,7 @@ with tab_detect:
                 # attack header
                 st.markdown(f"""
                 <div class="attack-header">
-                    <h3>🎯 {atk}</h3>
+                    <h3>{atk}</h3>
                     <span class="attack-tag">{meta['model_type'].upper()}</span>
                     <span class="attack-tag">THR={meta['threshold']:.3f}</span>
                 </div>
@@ -510,7 +510,7 @@ with tab_detect:
                                 fontweight="bold", color="#1e293b")
                     ax1.set_title(f"Prediction Summary (thr={thr:.3f})",
                                   fontsize=10, fontweight="bold", color="#1e293b")
-                    ax1.set_ylabel("จำนวน flow", fontsize=9)
+                    ax1.set_ylabel("Number of flows", fontsize=9)
 
                     ax2.hist(proba, bins=50, color="#3b82f6", edgecolor="white",
                              alpha=0.85, linewidth=0.5)
@@ -519,7 +519,7 @@ with tab_detect:
                     ax2.set_title("Probability Distribution",
                                   fontsize=10, fontweight="bold", color="#1e293b")
                     ax2.set_xlabel(f"P({atk})", fontsize=9)
-                    ax2.set_ylabel("จำนวน flow", fontsize=9)
+                    ax2.set_ylabel("Number of flows", fontsize=9)
                     ax2.legend(fontsize=8)
                     fig.tight_layout()
                     st.pyplot(fig)
@@ -724,7 +724,7 @@ with tab_dash:
         ax.set_xticklabels(versions, fontsize=11, fontweight="bold")
         ax.set_ylabel("F1-score", fontsize=10)
         ax.set_ylim(0, 1.15)
-        ax.set_title("F1-score Progression: v1 → v4", fontsize=13,
+        ax.set_title("F1-score Progression: v1 to v4", fontsize=13,
                       fontweight="bold", color="#0f172a", pad=12)
         ax.legend(loc="lower right", framealpha=0.9, fontsize=9)
         ax.axhline(y=0.95, color="#94a3b8", linestyle=":", alpha=0.5, linewidth=1)
