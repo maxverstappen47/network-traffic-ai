@@ -167,9 +167,72 @@ with tab_detect:
                     plt.close(fig)
 
                 else:
-                    # ไม่มี label — แสดงสรุปอย่างเดียว
-                    st.metric(f"flow ที่ถูก flag เป็น {atk}",
-                              f"{int(pred.sum()):,} / {len(pred):,}")
+                    # ไม่มี label — แสดงผลให้คล้ายแบบมี label มากที่สุด
+                    thr = meta["threshold"]
+                    n_total = len(pred)
+                    n_attack = int(pred.sum())
+                    n_benign = n_total - n_attack
+
+                    pred_05 = (proba >= 0.5).astype(int)
+                    n_attack_05 = int(pred_05.sum())
+                    n_benign_05 = n_total - n_attack_05
+
+                    # --- prediction report (threshold=0.5) ---
+                    st.markdown(f"#### Threshold = 0.5 (ค่าเริ่มต้น)")
+                    report_05 = (
+                        f"{'':>14}{'predicted':>12}{'% of total':>12}\n"
+                        f"{'':>14}{'-'*24}\n"
+                        f"{'Benign':>14}{n_benign_05:>12,}{n_benign_05/n_total*100:>11.2f}%\n"
+                        f"{atk:>14}{n_attack_05:>12,}{n_attack_05/n_total*100:>11.2f}%\n"
+                        f"{'':>14}{'-'*24}\n"
+                        f"{'Total':>14}{n_total:>12,}{'100.00%':>12}"
+                    )
+                    st.code(report_05, language=None)
+
+                    # --- prediction report (tuned threshold) ---
+                    st.markdown(f"#### Threshold = {thr:.3f} (tuned เพื่อ F1 สูงสุด)")
+                    report_tuned = (
+                        f"{'':>14}{'predicted':>12}{'% of total':>12}\n"
+                        f"{'':>14}{'-'*24}\n"
+                        f"{'Benign':>14}{n_benign:>12,}{n_benign/n_total*100:>11.2f}%\n"
+                        f"{atk:>14}{n_attack:>12,}{n_attack/n_total*100:>11.2f}%\n"
+                        f"{'':>14}{'-'*24}\n"
+                        f"{'Total':>14}{n_total:>12,}{'100.00%':>12}"
+                    )
+                    st.code(report_tuned, language=None)
+
+                    # --- สรุปจำนวน ---
+                    ac1, ac2 = st.columns(2)
+                    ac1.metric("Benign (ปกติ)", f"{n_benign:,}")
+                    ac2.metric(f"flag เป็น {atk}", f"{n_attack:,}")
+
+                    # --- prediction distribution chart ---
+                    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(8, 3.5))
+
+                    # bar chart: benign vs attack
+                    bars = ax1.bar(["Benign", atk], [n_benign, n_attack],
+                                   color=["#3b82f6", "#ef4444"])
+                    for bar, val in zip(bars, [n_benign, n_attack]):
+                        ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
+                                f"{val:,}", ha="center", va="bottom", fontsize=11)
+                    ax1.set_title(f"Prediction Summary (thr={thr:.3f})")
+                    ax1.set_ylabel("จำนวน flow")
+
+                    # probability histogram
+                    ax2.hist(proba, bins=50, color="#3b82f6", edgecolor="white", alpha=0.8)
+                    ax2.axvline(thr, color="#ef4444", linestyle="--", linewidth=2,
+                               label=f"threshold={thr:.3f}")
+                    ax2.set_title("Probability Distribution")
+                    ax2.set_xlabel(f"P({atk})")
+                    ax2.set_ylabel("จำนวน flow")
+                    ax2.legend()
+
+                    fig.tight_layout()
+                    st.pyplot(fig)
+                    plt.close(fig)
+
+                    st.caption("⚠️ ไม่มีคอลัมน์ Label — ประเมิน precision/recall/confusion matrix ไม่ได้ "
+                               "แสดงเฉพาะผลการทำนาย")
 
                 st.markdown("---")
 
