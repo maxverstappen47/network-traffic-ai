@@ -33,7 +33,7 @@ except Exception:
     TORCH_OK = False
 
 # ---------- ค่าคงที่ (ตรงกับ v4) ----------
-EPOCHS_DEFAULT = 15
+EPOCHS_DEFAULT = 20
 BATCH_SIZE = 512
 LR = 0.001
 WEIGHT_MODE = "sqrt"
