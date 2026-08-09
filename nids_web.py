@@ -39,7 +39,8 @@ with st.sidebar:
 st.title("ตรวจจับการบุกรุกเครือข่าย (NIDS)")
 st.caption("CIC-IDS2017 · โมเดล hybrid v4 (XGBoost + PyTorch NN)")
 
-tab_detect, tab_feat = st.tabs(["🔎 ตรวจจับ (Detect)", "🧹 Feature Tool"])
+tab_detect, tab_feat, tab_dash = st.tabs(
+    ["🔎 ตรวจจับ (Detect)", "🧹 Feature Tool", "📊 Dashboard"])
 
 # =====================================================
 # TAB 1 : DETECT (ส่วนหลัก — อิสระจาก Feature Tool)
@@ -352,3 +353,133 @@ with tab_feat:
                 df_ft[cols].to_csv(index=False).encode("utf-8-sig"),
                 file_name=up_feat.name.rsplit(".", 1)[0] + "_selected.csv",
                 mime="text/csv")
+
+# =====================================================
+# TAB 3 : DASHBOARD (ดูได้เลย ไม่ต้องอัปโหลด)
+# =====================================================
+with tab_dash:
+    st.subheader("สรุปผลโมเดลทั้ง 4 ตัว + พัฒนาการ v1→v4")
+
+    if not bundles:
+        st.error("ยังไม่มีโมเดล — รัน train_backend.py ก่อน")
+    else:
+        # --- ตารางสรุป ---
+        import joblib, os
+        info_rows = []
+        model_features = {}
+        for atk in bundles:
+            meta = joblib.load(os.path.join(core.MODELS_DIR, f"{atk}_meta.pkl"))
+            m = meta.get("metrics", {})
+            info_rows.append({
+                "Attack Type": atk,
+                "Model": meta["model_type"].upper(),
+                "Threshold": f"{meta['threshold']:.3f}",
+                "Precision": f"{m.get('precision', 0):.4f}",
+                "Recall": f"{m.get('recall', 0):.4f}",
+                "F1-score": f"{m.get('f1', 0):.4f}",
+                "AUC": f"{m.get('auc', 0):.4f}",
+                "Features": len(meta["features"]),
+            })
+            model_features[atk] = meta["features"]
+        st.markdown("#### ผลลัพธ์ทุก Attack (tuned threshold, hybrid model)")
+        summary_text = (
+            f"{'Attack Type':<14}{'Model':<10}{'Threshold':>10}{'Precision':>11}"
+            f"{'Recall':>9}{'F1':>9}{'AUC':>9}{'Feat':>6}\n"
+            f"{'-'*78}\n"
+        )
+        for r in info_rows:
+            summary_text += (
+                f"{r['Attack Type']:<14}{r['Model']:<10}{r['Threshold']:>10}"
+                f"{r['Precision']:>11}{r['Recall']:>9}{r['F1-score']:>9}"
+                f"{r['AUC']:>9}{r['Features']:>6}\n"
+            )
+        st.code(summary_text, language=None)
+
+        # --- กราฟ v1→v4 ---
+        st.markdown("#### พัฒนาการ F1-score: v1 → v4")
+        st.caption("แต่ละ version แก้ปัญหาอะไร: v1=baseline → v2=sqrt weight+threshold tuning "
+                   "→ v3=+SMOTE → v4=hybrid XGBoost/NN")
+
+        versions = ["v1", "v2", "v3", "v4"]
+        f1_data = {
+            "Bot":       [0.22, 0.73, 0.80, 0.97],
+            "WebAttack": [0.57, 0.79, 0.80, 0.95],
+            "PortScan":  [0.999, 0.999, 0.999, 0.999],
+            "DDoS":      [0.999, 0.999, 0.999, 0.999],
+        }
+        colors = {"Bot": "#ef4444", "WebAttack": "#f59e0b",
+                  "PortScan": "#3b82f6", "DDoS": "#10b981"}
+
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+        x = np.arange(len(versions))
+        width = 0.2
+        for i, (atk, f1s) in enumerate(f1_data.items()):
+            bars = ax.bar(x + i * width, f1s, width, label=atk, color=colors[atk])
+            for bar, val in zip(bars, f1s):
+                ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.01,
+                        f"{val:.2f}", ha="center", va="bottom", fontsize=8)
+        ax.set_xticks(x + width * 1.5)
+        ax.set_xticklabels(versions)
+        ax.set_ylabel("F1-score")
+        ax.set_ylim(0, 1.15)
+        ax.set_title("F1-score Progression: v1 → v4")
+        ax.legend(loc="lower right")
+        ax.axhline(y=0.95, color="gray", linestyle=":", alpha=0.5)
+        fig.tight_layout()
+        st.pyplot(fig)
+        plt.close(fig)
+
+        # annotations
+        st.markdown("""
+| Version | การแก้ไข | ผลลัพธ์หลัก |
+|---------|---------|------------|
+| **v1** | NN + inverse class weight ตรงๆ | Bot P=13%, WebAttack P=40% (weight รุนแรงเกินทำให้ FP เยอะ) |
+| **v2** | เปลี่ยนเป็น √weight + threshold tuning | Bot F1: 0.22→0.73, WebAttack F1: 0.57→0.79 |
+| **v3** | +SMOTE oversample เฉพาะ train set | Bot F1: 0.73→0.80, WebAttack F1: 0.79→0.80 |
+| **v4** | Hybrid: XGBoost สำหรับ imbalance, NN สำหรับ balanced | Bot F1: 0.80→**0.97**, WebAttack F1: 0.80→**0.95** |
+""")
+
+        # --- Feature Importance (เฉพาะ XGBoost) ---
+        st.markdown("#### Feature Importance เปรียบเทียบข้าม Attack Type")
+        st.caption("แสดงเฉพาะโมเดล XGBoost (Bot/WebAttack) — "
+                   "NN (PortScan/DDoS) ไม่มี built-in feature importance")
+
+        xgb_attacks = [atk for atk in bundles
+                       if joblib.load(os.path.join(core.MODELS_DIR,
+                          f"{atk}_meta.pkl"))["model_type"] == "xgboost"]
+
+        if xgb_attacks:
+            n_xgb = len(xgb_attacks)
+            fig, axes = plt.subplots(1, n_xgb, figsize=(6 * n_xgb, max(5, 6)))
+            if n_xgb == 1:
+                axes = [axes]
+            for ax, atk in zip(axes, xgb_attacks):
+                model_xgb, meta_xgb = core.load_bundle(atk)
+                feats = meta_xgb["features"]
+                importances = model_xgb.feature_importances_
+                imp_df = pd.DataFrame({"feature": feats, "importance": importances})
+                imp_df = imp_df.sort_values("importance", ascending=True)
+                ax.barh(imp_df["feature"], imp_df["importance"], color=colors.get(atk, "#3b82f6"))
+                ax.set_title(f"Feature Importance: {atk}")
+                ax.set_xlabel("Importance")
+            fig.tight_layout()
+            st.pyplot(fig)
+            plt.close(fig)
+
+            # top feature comparison
+            st.markdown("##### Top 5 features ที่สำคัญที่สุดของแต่ละ attack")
+            comp_text = ""
+            for atk in xgb_attacks:
+                model_xgb, meta_xgb = core.load_bundle(atk)
+                feats = meta_xgb["features"]
+                importances = model_xgb.feature_importances_
+                top5 = sorted(zip(feats, importances), key=lambda x: -x[1])[:5]
+                comp_text += f"\n  {atk}:\n"
+                for rank, (f, v) in enumerate(top5, 1):
+                    comp_text += f"    {rank}. {f:<35} {v:.4f}\n"
+            st.code(comp_text, language=None)
+            st.caption("⚠️ feature importance ขึ้นกับชนิด attack — "
+                       "feature สำคัญของ Bot อาจไม่สำคัญกับ WebAttack "
+                       "นี่คือเหตุผลที่ต้องแยกโมเดล 1 ตัวต่อ 1 attack")
+        else:
+            st.info("ไม่มีโมเดล XGBoost ใน bundle — ไม่สามารถแสดง feature importance ได้")
