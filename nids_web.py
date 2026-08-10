@@ -25,155 +25,210 @@ st.set_page_config(
 # ─── Custom CSS ─────────────────────────────────────
 st.markdown("""
 <style>
-/* ──── import Google font ──── */
-@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+/* ──── Google Fonts ──── */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+/* ──── keyframes ──── */
+@keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes float-y { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-6px)} }
+@keyframes scan { 0%{left:-30%} 100%{left:130%} }
+@keyframes gradient-x { 0%{background-position:0% 50%} 50%{background-position:100% 50%} 100%{background-position:0% 50%} }
 
 /* ──── global ──── */
 html, body, [class*="css"] {
-    font-family: 'IBM Plex Sans Thai', sans-serif;
+    font-family: 'Space Grotesk', 'Noto Sans Thai', sans-serif !important;
 }
-code, pre, .stCodeBlock code {
+code, pre, .stCodeBlock, .stCodeBlock code {
     font-family: 'JetBrains Mono', monospace !important;
     font-size: 0.82rem !important;
 }
+.main .block-container { max-width: 1100px; }
 
 /* ──── sidebar ──── */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #0f172a 0%, #1e293b 100%);
+    background: linear-gradient(175deg, #020617 0%, #0f172a 40%, #0c1425 100%);
 }
-section[data-testid="stSidebar"] * {
-    color: #e2e8f0 !important;
+section[data-testid="stSidebar"]::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(6,182,212,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6,182,212,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
 }
-section[data-testid="stSidebar"] hr {
-    border-color: #334155;
-}
+section[data-testid="stSidebar"] * { color: #cbd5e1 !important; }
+section[data-testid="stSidebar"] hr { border-color: #1e293b; }
+section[data-testid="stSidebar"] .stSelectbox label,
+section[data-testid="stSidebar"] .stMultiSelect label { font-size: .82rem !important; }
 
 /* ──── hero banner ──── */
 .hero-box {
-    background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
-    border-radius: 16px;
-    padding: 2rem 2.5rem;
+    background: linear-gradient(135deg, #020617 0%, #0c1e3a 50%, #020617 100%);
+    border-radius: 20px;
+    padding: 2.5rem 2.8rem 2rem;
     margin-bottom: 1.5rem;
-    border: 1px solid #1e40af44;
+    border: 1px solid rgba(6,182,212,.15);
     position: relative;
     overflow: hidden;
 }
 .hero-box::before {
     content: "";
-    position: absolute;
-    top: -50%; left: -50%;
+    position: absolute; top: -50%; left: -50%;
     width: 200%; height: 200%;
-    background: radial-gradient(circle at 70% 30%, #3b82f622 0%, transparent 60%);
+    background: radial-gradient(ellipse at 65% 25%, rgba(6,182,212,.12) 0%, transparent 55%);
+}
+.hero-box::after {
+    content: "";
+    position: absolute; top: 0; left: -30%;
+    width: 30%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(6,182,212,.06), transparent);
+    animation: scan 4s ease-in-out infinite;
 }
 .hero-box h1 {
     color: #f1f5f9;
-    font-size: 1.9rem;
+    font-size: 2rem;
     font-weight: 700;
-    margin: 0 0 0.3rem 0;
+    margin: 0 0 .5rem 0;
     position: relative;
+    letter-spacing: -.02em;
+}
+.hero-box h1 .accent {
+    background: linear-gradient(135deg, #06b6d4, #3b82f6, #8b5cf6);
+    background-size: 200% 200%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    animation: gradient-x 4s ease infinite;
 }
 .hero-box p {
     color: #94a3b8;
-    font-size: 0.95rem;
+    font-size: .9rem;
     margin: 0;
     position: relative;
 }
 .hero-badge {
     display: inline-block;
-    background: #3b82f620;
-    border: 1px solid #3b82f650;
-    color: #60a5fa !important;
-    font-size: 0.75rem;
+    background: rgba(6,182,212,.1);
+    border: 1px solid rgba(6,182,212,.25);
+    color: #22d3ee !important;
+    font-size: .72rem;
     font-weight: 500;
-    padding: 0.2rem 0.7rem;
+    padding: .2rem .65rem;
     border-radius: 20px;
-    margin-right: 0.5rem;
+    margin-right: .4rem;
     position: relative;
+    font-family: 'JetBrains Mono', monospace;
+}
+
+/* ──── telecom wave decoration ──── */
+.tele-wave {
+    position: absolute;
+    bottom: 0; right: 0;
+    width: 280px; height: 80px;
+    opacity: .25;
 }
 
 /* ──── metric cards ──── */
 div[data-testid="stMetric"] {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
+    background: rgba(15,23,42,.6);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(51,65,85,.5);
+    border-radius: 14px;
     padding: 1rem 1.2rem;
-    box-shadow: 0 1px 3px #0000000a;
 }
 div[data-testid="stMetric"] label {
     color: #64748b !important;
     font-weight: 500;
-    font-size: 0.82rem !important;
+    font-size: .78rem !important;
+    text-transform: uppercase;
+    letter-spacing: .06em;
 }
 div[data-testid="stMetric"] [data-testid="stMetricValue"] {
-    color: #0f172a !important;
+    color: #e2e8f0 !important;
     font-weight: 700;
-    font-size: 1.6rem !important;
+    font-size: 1.5rem !important;
+    font-family: 'JetBrains Mono', monospace !important;
 }
+
+/* ──── metric per attack color ──── */
+.metric-bot div[data-testid="stMetric"] { border-top: 3px solid #ef4444; }
+.metric-portscan div[data-testid="stMetric"] { border-top: 3px solid #3b82f6; }
+.metric-ddos div[data-testid="stMetric"] { border-top: 3px solid #10b981; }
+.metric-webattack div[data-testid="stMetric"] { border-top: 3px solid #f59e0b; }
 
 /* ──── tabs ──── */
 button[data-baseweb="tab"] {
-    font-family: 'IBM Plex Sans Thai', sans-serif !important;
+    font-family: 'Space Grotesk', 'Noto Sans Thai', sans-serif !important;
     font-weight: 600 !important;
-    font-size: 0.95rem !important;
-    padding: 0.7rem 1.5rem !important;
+    font-size: .9rem !important;
+    padding: .65rem 1.3rem !important;
+    border-radius: 10px 10px 0 0 !important;
 }
 
 /* ──── attack result header ──── */
 .attack-header {
-    background: linear-gradient(90deg, #1e293b 0%, #334155 100%);
-    border-radius: 10px;
-    padding: 0.8rem 1.5rem;
+    background: linear-gradient(90deg, #0f172a 0%, #1e293b 70%, #0f172a 100%);
+    border-radius: 12px;
+    padding: .85rem 1.5rem;
     margin: 1.5rem 0 1rem 0;
     display: flex;
     align-items: center;
-    gap: 0.8rem;
+    gap: .8rem;
+    border: 1px solid #1e293b;
+    position: relative;
+    overflow: hidden;
+}
+.attack-header::before {
+    content: "";
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: linear-gradient(180deg, #06b6d4, #3b82f6);
+    border-radius: 3px 0 0 3px;
 }
 .attack-header h3 {
     color: #f1f5f9;
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.15rem;
     font-weight: 600;
 }
 .attack-tag {
-    background: #3b82f630;
-    color: #60a5fa;
-    font-size: 0.72rem;
+    background: rgba(6,182,212,.12);
+    color: #22d3ee;
+    font-size: .7rem;
     font-weight: 600;
-    padding: 0.15rem 0.6rem;
+    padding: .15rem .6rem;
     border-radius: 6px;
     font-family: 'JetBrains Mono', monospace;
+    border: 1px solid rgba(6,182,212,.2);
 }
 
 /* ──── info box ──── */
 .info-card {
-    background: #f0f9ff;
-    border-left: 4px solid #0ea5e9;
-    border-radius: 0 10px 10px 0;
+    background: rgba(6,182,212,.06);
+    border-left: 3px solid #06b6d4;
+    border-radius: 0 12px 12px 0;
     padding: 1rem 1.3rem;
-    margin: 0.5rem 0 1rem 0;
+    margin: .5rem 0 1rem 0;
 }
-.info-card p { color: #0c4a6e; margin: 0; font-size: 0.9rem; }
+.info-card p { color: #94a3b8; margin: 0; font-size: .88rem; }
 
 /* ──── status pill ──── */
 .pill-ok {
     display: inline-block;
-    background: #dcfce7; color: #166534;
-    font-size: 0.78rem; font-weight: 500;
-    padding: 0.15rem 0.7rem; border-radius: 20px;
+    background: rgba(34,197,94,.1); color: #4ade80;
+    font-size: .78rem; font-weight: 500;
+    padding: .15rem .7rem; border-radius: 20px;
+    border: 1px solid rgba(34,197,94,.2);
 }
 .pill-warn {
     display: inline-block;
-    background: #fef9c3; color: #854d0e;
-    font-size: 0.78rem; font-weight: 500;
-    padding: 0.15rem 0.7rem; border-radius: 20px;
+    background: rgba(245,158,11,.1); color: #fbbf24;
+    font-size: .78rem; font-weight: 500;
+    padding: .15rem .7rem; border-radius: 20px;
+    border: 1px solid rgba(245,158,11,.2);
 }
 
-/* ──── separator line ──── */
-.sep {
-    border: none;
-    border-top: 1px solid #e2e8f0;
-    margin: 1.8rem 0;
-}
+/* ──── separator ──── */
+.sep { border: none; border-top: 1px solid #1e293b; margin: 1.8rem 0; }
 
 /* ──── dashboard score cards ──── */
 .score-grid {
@@ -183,53 +238,124 @@ button[data-baseweb="tab"] {
     margin: 1rem 0;
 }
 .score-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 1.2rem;
+    background: rgba(15,23,42,.7);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(51,65,85,.5);
+    border-radius: 16px;
+    padding: 1.3rem;
     text-align: center;
-    box-shadow: 0 2px 8px #0000000a;
-    transition: transform 0.15s;
+    transition: transform .2s, border-color .2s;
+    position: relative;
+    overflow: hidden;
 }
-.score-card:hover { transform: translateY(-2px); }
+.score-card::before {
+    content: "";
+    position: absolute; inset: 0; pointer-events: none;
+    background-image:
+        linear-gradient(rgba(6,182,212,.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(6,182,212,.03) 1px, transparent 1px);
+    background-size: 16px 16px;
+}
+.score-card:hover { transform: translateY(-3px); border-color: rgba(6,182,212,.3); }
 .score-card .atk-name {
-    font-size: 0.82rem; color: #64748b;
-    font-weight: 500; text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-size: .78rem; color: #64748b;
+    font-weight: 600; text-transform: uppercase;
+    letter-spacing: .08em;
+    position: relative;
 }
 .score-card .atk-f1 {
-    font-size: 2.2rem; font-weight: 700; color: #0f172a;
-    margin: 0.3rem 0;
+    font-size: 2.4rem; font-weight: 700;
+    margin: .3rem 0;
+    font-family: 'JetBrains Mono', monospace;
+    position: relative;
 }
 .score-card .atk-model {
-    font-size: 0.72rem; color: #94a3b8;
+    font-size: .68rem; color: #475569;
     font-family: 'JetBrains Mono', monospace;
+    position: relative;
 }
 
-/* ──── download button ──── */
+/* ──── upload area ──── */
+.upload-placeholder {
+    text-align: center;
+    padding: 3.5rem 1.5rem;
+    border: 2px dashed #1e293b;
+    border-radius: 16px;
+    background: rgba(15,23,42,.3);
+}
+.upload-placeholder .icon { font-size: 2.8rem; margin-bottom: .6rem; }
+.upload-placeholder .title {
+    font-size: 1.05rem; font-weight: 500; color: #64748b;
+}
+.upload-placeholder .sub {
+    font-size: .82rem; color: #475569; margin-top: .3rem;
+}
+
+/* ──── buttons ──── */
 .stDownloadButton > button {
-    background: #0f172a !important;
-    color: #f1f5f9 !important;
-    border: none !important;
-    border-radius: 10px !important;
+    background: linear-gradient(135deg, #0f172a, #1e293b) !important;
+    color: #e2e8f0 !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
     font-weight: 600 !important;
-    padding: 0.6rem 1.5rem !important;
+    padding: .6rem 1.5rem !important;
 }
 .stDownloadButton > button:hover {
-    background: #1e293b !important;
+    border-color: #06b6d4 !important;
+}
+.stButton > button[kind="primary"] {
+    border-radius: 12px !important;
+    font-weight: 600 !important;
+    background: linear-gradient(135deg, #0891b2, #0284c7) !important;
+    border: none !important;
 }
 
-/* ──── run button ──── */
-.stButton > button[kind="primary"] {
-    border-radius: 10px !important;
-    font-weight: 600 !important;
+/* ──── dataframe ──── */
+.stDataFrame { border-radius: 12px; overflow: hidden; }
+
+/* ──── main bg ──── */
+.stApp {
+    background: linear-gradient(175deg, #020617 0%, #0f172a 100%);
 }
+.stApp > header { background: transparent !important; }
+
+/* ──── override text colors for dark bg ──── */
+.stMarkdown, .stMarkdown p, .stMarkdown li, .stCaption, .stMarkdown h4,
+.stMarkdown h3, .stMarkdown h5, label, .stSelectbox label {
+    color: #cbd5e1 !important;
+}
+.stMarkdown h4, .stMarkdown h3 { color: #e2e8f0 !important; }
+.stMarkdown strong { color: #f1f5f9 !important; }
+.stMarkdown a { color: #22d3ee !important; }
+
+/* ──── table dark override ──── */
+.stMarkdown table { border-collapse: collapse; }
+.stMarkdown th {
+    background: rgba(15,23,42,.8) !important;
+    color: #94a3b8 !important;
+    border: 1px solid #1e293b !important;
+    padding: .5rem .8rem !important;
+    font-size: .82rem !important;
+}
+.stMarkdown td {
+    background: rgba(15,23,42,.4) !important;
+    color: #cbd5e1 !important;
+    border: 1px solid #1e293b !important;
+    padding: .5rem .8rem !important;
+    font-size: .82rem !important;
+}
+
+/* ──── expander dark ──── */
+.streamlit-expanderHeader { color: #94a3b8 !important; }
+
+/* ──── code block dark ──── */
+.stCodeBlock { border-radius: 10px !important; }
 </style>
 """, unsafe_allow_html=True)
 
 
 # ─── Matplotlib style ───────────────────────────────
-CHART_BG = "#fafbfc"
+CHART_BG = "#0a0f1a"
 CHART_COLORS = {"Bot": "#ef4444", "WebAttack": "#f59e0b",
                 "PortScan": "#3b82f6", "DDoS": "#10b981",
                 "Web Attack": "#f59e0b"}
@@ -239,9 +365,12 @@ def styled_fig(w=8, h=4):
     ax.set_facecolor(CHART_BG)
     ax.spines["top"].set_visible(False)
     ax.spines["right"].set_visible(False)
-    ax.spines["left"].set_color("#cbd5e1")
-    ax.spines["bottom"].set_color("#cbd5e1")
+    ax.spines["left"].set_color("#1e293b")
+    ax.spines["bottom"].set_color("#1e293b")
     ax.tick_params(colors="#64748b", labelsize=9)
+    ax.xaxis.label.set_color("#94a3b8")
+    ax.yaxis.label.set_color("#94a3b8")
+    ax.title.set_color("#e2e8f0")
     return fig, ax
 
 
@@ -255,13 +384,22 @@ bundles = core.list_bundles()
 
 with st.sidebar:
     st.markdown("""
-    <div style="text-align:center; padding: 1.5rem 0 0.5rem 0;">
-        <div style="font-size:2.8rem;">🛡️</div>
-        <div style="font-size:1.3rem; font-weight:700; letter-spacing:0.03em; margin-top:0.3rem;">
-            NIDS Detector
+    <div style="text-align:center; padding: 1.5rem 0 .5rem 0;">
+        <div style="margin:0 auto; width:56px; height:56px; border-radius:14px;
+                    background:linear-gradient(135deg,#06b6d4,#3b82f6);
+                    display:flex; align-items:center; justify-content:center;
+                    box-shadow: 0 4px 20px rgba(6,182,212,.25);">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
         </div>
-        <div style="font-size:0.75rem; color:#94a3b8; margin-top:0.2rem;">
-            Network Intrusion Detection System
+        <div style="font-size:1.2rem; font-weight:700; letter-spacing:.03em; margin-top:.6rem;
+                    font-family:'Space Grotesk',sans-serif;">
+            NIDS<span style="color:#22d3ee !important;">.detect</span>
+        </div>
+        <div style="font-size:.68rem; color:#475569 !important; margin-top:.15rem;
+                    font-family:'JetBrains Mono',monospace; letter-spacing:.05em;">
+            HYBRID ML PIPELINE v4
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -270,18 +408,30 @@ with st.sidebar:
 
     if bundles:
         st.markdown(f"""
-        <div style="background:#166534; border-radius:8px; padding:0.6rem 1rem;
-                    font-size:0.85rem; text-align:center; margin-bottom:0.8rem;">
-            ✅ โมเดลพร้อมใช้: <strong>{len(bundles)}</strong> ตัว
+        <div style="background:rgba(6,182,212,.08); border:1px solid rgba(6,182,212,.2);
+                    border-radius:10px; padding:.6rem 1rem;
+                    font-size:.82rem; text-align:center; margin-bottom:.8rem;
+                    display:flex; align-items:center; justify-content:center; gap:.5rem;">
+            <span style="width:6px;height:6px;border-radius:50%;background:#22d3ee;
+                        display:inline-block;animation:pulse-dot 1.5s ease-in-out infinite;"></span>
+            Models ready: <strong style="color:#22d3ee !important;">{len(bundles)}</strong>
         </div>
         """, unsafe_allow_html=True)
         for b in bundles:
             st.markdown(f"""
-            <div style="background:#1e293b; border:1px solid #334155; border-radius:8px;
-                        padding:0.4rem 0.8rem; margin:0.3rem 0; font-size:0.82rem;
-                        display:flex; justify-content:space-between; align-items:center;">
-                <span>{b}</span>
-                <span style="color:#4ade80; font-size:0.7rem;">READY</span>
+            <div style="background:rgba(15,23,42,.6); border:1px solid #1e293b; border-radius:10px;
+                        padding:.45rem .8rem; margin:.3rem 0; font-size:.8rem;
+                        display:flex; justify-content:space-between; align-items:center;
+                        backdrop-filter:blur(8px);">
+                <span style="display:flex;align-items:center;gap:.4rem;">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none"
+                         stroke="#06b6d4" stroke-width="2">
+                        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                    </svg>
+                    {b}
+                </span>
+                <span style="color:#4ade80 !important; font-size:.65rem;
+                            font-family:'JetBrains Mono',monospace;">READY</span>
             </div>
             """, unsafe_allow_html=True)
     else:
@@ -301,12 +451,37 @@ with st.sidebar:
 # ─── Hero banner ────────────────────────────────────
 st.markdown("""
 <div class="hero-box">
-    <h1>🛡️ ตรวจจับการบุกรุกเครือข่าย</h1>
+    <svg class="tele-wave" viewBox="0 0 280 80" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 40 Q35 15 70 40 T140 40 T210 40 T280 40" stroke="#06b6d4" stroke-width="1.5" opacity=".4">
+            <animate attributeName="d" dur="3s" repeatCount="indefinite"
+                values="M0 40 Q35 15 70 40 T140 40 T210 40 T280 40;M0 40 Q35 65 70 40 T140 40 T210 40 T280 40;M0 40 Q35 15 70 40 T140 40 T210 40 T280 40" />
+        </path>
+        <path d="M0 50 Q35 25 70 50 T140 50 T210 50 T280 50" stroke="#3b82f6" stroke-width="1" opacity=".2">
+            <animate attributeName="d" dur="4s" repeatCount="indefinite"
+                values="M0 50 Q35 25 70 50 T140 50 T210 50 T280 50;M0 50 Q35 75 70 50 T140 50 T210 50 T280 50;M0 50 Q35 25 70 50 T140 50 T210 50 T280 50" />
+        </path>
+        <circle cx="40" cy="40" r="2" fill="#06b6d4" opacity=".6">
+            <animate attributeName="opacity" values=".6;.2;.6" dur="2s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="140" cy="35" r="2" fill="#3b82f6" opacity=".5">
+            <animate attributeName="opacity" values=".5;.15;.5" dur="2.5s" repeatCount="indefinite" />
+        </circle>
+        <circle cx="220" cy="45" r="2" fill="#06b6d4" opacity=".4">
+            <animate attributeName="opacity" values=".4;.1;.4" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <line x1="40" y1="40" x2="140" y2="35" stroke="#06b6d4" stroke-width=".5" opacity=".2" stroke-dasharray="4 4">
+            <animate attributeName="stroke-dashoffset" values="8;0" dur="1.5s" repeatCount="indefinite" />
+        </line>
+        <line x1="140" y1="35" x2="220" y2="45" stroke="#3b82f6" stroke-width=".5" opacity=".2" stroke-dasharray="4 4">
+            <animate attributeName="stroke-dashoffset" values="8;0" dur="2s" repeatCount="indefinite" />
+        </line>
+    </svg>
+    <h1><span class="accent">Network Intrusion</span> Detection System</h1>
     <p>
         <span class="hero-badge">CIC-IDS2017</span>
         <span class="hero-badge">Hybrid v4</span>
-        <span class="hero-badge">XGBoost + PyTorch NN</span>
-        ระบบตรวจจับ 4 ประเภท attack — Bot · PortScan · DDoS · WebAttack
+        <span class="hero-badge">XGBoost + NN</span>
+        Binary classifier x 4 attack types &mdash; Bot &middot; PortScan &middot; DDoS &middot; WebAttack
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -332,14 +507,17 @@ with tab_detect:
 
     if up_detect is None:
         st.markdown("""
-        <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
-            <div style="font-size:3rem; margin-bottom:0.8rem;">📁</div>
-            <div style="font-size:1.1rem; font-weight:500; color:#64748b;">
-                ลากไฟล์มาวาง หรือกด Browse files
+        <div class="upload-placeholder">
+            <div class="icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
+                     stroke="#334155" stroke-width="1.5" style="margin:0 auto;">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/>
+                    <polyline points="17 8 12 3 7 8"/>
+                    <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
             </div>
-            <div style="font-size:0.85rem; margin-top:0.3rem;">
-                รองรับ .xlsx, .xls, .csv · ไม่ต้องตัด feature ก่อน
-            </div>
+            <div class="title">Drop your traffic file here</div>
+            <div class="sub">.xlsx, .xls, .csv &middot; No feature cutting needed</div>
         </div>
         """, unsafe_allow_html=True)
     elif not bundles:
@@ -446,7 +624,7 @@ with tab_detect:
                     ax.set_xticklabels(["Pred Benign", f"Pred {atk}"])
                     ax.set_yticklabels(["Actual Benign", f"Actual {atk}"])
                     ax.set_title(f"Confusion Matrix: {atk} [{meta['model_type']}]",
-                                 fontsize=11, fontweight="bold", color="#1e293b")
+                                 fontsize=11, fontweight="bold", color="#e2e8f0")
                     ax.set_ylabel("Reality", fontsize=9)
                     ax.set_xlabel("AI Prediction", fontsize=9)
                     fig.colorbar(im, fraction=0.046)
@@ -464,10 +642,10 @@ with tab_detect:
                     ax.hist(proba_attack, bins=50, color="#ef4444", alpha=0.7,
                             edgecolor="white", linewidth=0.5,
                             label=f"Actual {atk} ({len(proba_attack):,})")
-                    ax.axvline(thr, color="#1e293b", linestyle="--", linewidth=2,
+                    ax.axvline(thr, color="#e2e8f0", linestyle="--", linewidth=2,
                                label=f"Threshold = {thr:.3f}")
                     ax.set_title(f"Probability Distribution: {atk}",
-                                 fontsize=11, fontweight="bold", color="#1e293b")
+                                 fontsize=11, fontweight="bold", color="#e2e8f0")
                     ax.set_xlabel(f"P({atk})", fontsize=9)
                     ax.set_ylabel("Number of flows", fontsize=9)
                     ax.legend(fontsize=9, loc="upper center")
@@ -518,8 +696,8 @@ with tab_detect:
                         _ax.set_facecolor(CHART_BG)
                         _ax.spines["top"].set_visible(False)
                         _ax.spines["right"].set_visible(False)
-                        _ax.spines["left"].set_color("#cbd5e1")
-                        _ax.spines["bottom"].set_color("#cbd5e1")
+                        _ax.spines["left"].set_color("#1e293b")
+                        _ax.spines["bottom"].set_color("#1e293b")
                         _ax.tick_params(colors="#64748b", labelsize=9)
 
                     bars = ax1.bar(["Benign", atk], [n_ben, n_atk],
@@ -528,9 +706,9 @@ with tab_detect:
                     for bar, val in zip(bars, [n_ben, n_atk]):
                         ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height(),
                                 f"{val:,}", ha="center", va="bottom", fontsize=10,
-                                fontweight="bold", color="#1e293b")
+                                fontweight="bold", color="#e2e8f0")
                     ax1.set_title(f"Prediction Summary (thr={thr:.3f})",
-                                  fontsize=10, fontweight="bold", color="#1e293b")
+                                  fontsize=10, fontweight="bold", color="#e2e8f0")
                     ax1.set_ylabel("Number of flows", fontsize=9)
 
                     # split histogram by predicted class
@@ -542,10 +720,10 @@ with tab_detect:
                     ax2.hist(proba_pred_atk, bins=50, color="#ef4444", alpha=0.7,
                              edgecolor="white", linewidth=0.5,
                              label=f"Predicted {atk} ({len(proba_pred_atk):,})")
-                    ax2.axvline(thr, color="#1e293b", linestyle="--", linewidth=2,
+                    ax2.axvline(thr, color="#e2e8f0", linestyle="--", linewidth=2,
                                label=f"Threshold = {thr:.3f}")
                     ax2.set_title("Probability Distribution",
-                                  fontsize=10, fontweight="bold", color="#1e293b")
+                                  fontsize=10, fontweight="bold", color="#e2e8f0")
                     ax2.set_xlabel(f"P({atk})", fontsize=9)
                     ax2.set_ylabel("Number of flows", fontsize=9)
                     ax2.legend(fontsize=7, loc="upper center")
@@ -581,11 +759,15 @@ with tab_feat:
 
     if up_feat is None:
         st.markdown("""
-        <div style="text-align:center; padding:3rem 1rem; color:#94a3b8;">
-            <div style="font-size:3rem; margin-bottom:0.8rem;">🔬</div>
-            <div style="font-size:1.1rem; font-weight:500; color:#64748b;">
-                อัปโหลดไฟล์เพื่อเริ่มสำรวจ feature
+        <div class="upload-placeholder">
+            <div class="icon">
+                <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
+                     stroke="#334155" stroke-width="1.5" style="margin:0 auto;">
+                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
+                </svg>
             </div>
+            <div class="title">Upload a file to explore features</div>
+            <div class="sub">Feature stats, compatibility check, RF baseline</div>
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -673,7 +855,7 @@ with tab_feat:
                 ax.barh(imp["feature"], imp["importance"], color="#3b82f6",
                         edgecolor="white", linewidth=0.5)
                 ax.set_title("Feature Importance (RF)", fontsize=11,
-                             fontweight="bold", color="#1e293b")
+                             fontweight="bold", color="#e2e8f0")
                 fig.tight_layout()
                 st.pyplot(fig)
                 plt.close(fig)
@@ -747,13 +929,13 @@ with tab_dash:
                 if val < 0.99:
                     ax.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.015,
                             f"{val:.2f}", ha="center", va="bottom", fontsize=8,
-                            fontweight="bold", color="#1e293b")
+                            fontweight="bold", color="#e2e8f0")
         ax.set_xticks(x + width * 1.5)
         ax.set_xticklabels(versions, fontsize=11, fontweight="bold")
         ax.set_ylabel("F1-score", fontsize=10)
         ax.set_ylim(0, 1.15)
         ax.set_title("F1-score Progression: v1 to v4", fontsize=13,
-                      fontweight="bold", color="#0f172a", pad=12)
+                      fontweight="bold", color="#e2e8f0", pad=12)
         ax.legend(loc="lower right", framealpha=0.9, fontsize=9)
         ax.axhline(y=0.95, color="#94a3b8", linestyle=":", alpha=0.5, linewidth=1)
         ax.text(3.7, 0.955, "target 0.95", fontsize=7, color="#94a3b8")
@@ -788,8 +970,8 @@ with tab_dash:
                 ax.set_facecolor(CHART_BG)
                 ax.spines["top"].set_visible(False)
                 ax.spines["right"].set_visible(False)
-                ax.spines["left"].set_color("#cbd5e1")
-                ax.spines["bottom"].set_color("#cbd5e1")
+                ax.spines["left"].set_color("#1e293b")
+                ax.spines["bottom"].set_color("#1e293b")
 
                 model_xgb, meta_xgb = core.load_bundle(atk)
                 feats = meta_xgb["features"]
@@ -800,7 +982,7 @@ with tab_dash:
                 ax.barh(imp_df["feature"], imp_df["importance"], color=c,
                         edgecolor="white", linewidth=0.5, height=0.7)
                 ax.set_title(f"Feature Importance: {atk}", fontsize=11,
-                             fontweight="bold", color="#0f172a")
+                             fontweight="bold", color="#e2e8f0")
                 ax.set_xlabel("Importance", fontsize=9)
                 ax.tick_params(labelsize=8)
             fig.tight_layout()
