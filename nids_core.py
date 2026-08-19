@@ -33,7 +33,7 @@ except Exception:
     TORCH_OK = False
 
 # ---------- ค่าคงที่ (ตรงกับ v4) ----------
-EPOCHS_DEFAULT = 20
+EPOCHS_DEFAULT = 15
 BATCH_SIZE = 512
 LR = 0.001
 WEIGHT_MODE = "sqrt"
@@ -203,6 +203,23 @@ def compatibility_check(feature_cols):
     return dict(best_set=best_name, overlap=best_overlap, ref_size=len(ref),
                 missing=[f for f in ref if f not in feature_cols],
                 extra=[f for f in feature_cols if f not in ref])
+
+
+# =====================================================
+# Auto-select model type based on class balance
+# =====================================================
+IMBALANCE_THRESHOLD = 0.20   # minority < 20% → imbalanced → xgboost
+
+def auto_select_model(y, threshold=IMBALANCE_THRESHOLD):
+    """ดูสัดส่วน minority class แล้วเลือกโมเดลอัตโนมัติ
+    - imbalanced (minority < threshold) → xgboost  (ดีกว่า NN บน tabular imbalanced)
+    - balanced                          → nn       (NN ทำงานได้ดีเมื่อ class ใกล้เคียงกัน)
+    """
+    minority_ratio = min(y.mean(), 1 - y.mean())
+    if minority_ratio < threshold:
+        return "xgboost", minority_ratio
+    else:
+        return "nn", minority_ratio
 
 
 # =====================================================
