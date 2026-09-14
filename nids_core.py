@@ -334,17 +334,31 @@ def predict_with_bundle(model, meta, df):
 # =====================================================
 # pipeline เทรนครบ 1 attack
 # =====================================================
+# v5: Train 60% / Val 20% / Test 20%
+#     - Train  → เทรนโมเดล
+#     - Val    → tune threshold (หา F1 สูงสุด)
+#     - Test   → วัดผลสุดท้าย (ไม่แตะจนจบ = ไม่มี bias)
+# =====================================================
 def train_one_attack(df, label_col, model_type, epochs=EPOCHS_DEFAULT,
                      use_smote_override=None, log=print):
     y, attack = make_binary_target(df, label_col)
     features = [c for c in df.columns if c != label_col]
     X = df[features].values
-    X_tr, X_te, y_tr, y_te = train_test_split(
+
+    # split 1: แยก test 20% ออกก่อน (ไม่แตะอีกเลยจนวัดผลสุดท้าย)
+    X_dev, X_te, y_dev, y_te = train_test_split(
         X, y, test_size=0.2, random_state=42, stratify=y)
 
+    # split 2: แยก val 25% ของ dev (= 20% ของทั้งหมด) ที่เหลือเป็น train 60%
+    X_tr, X_val, y_tr, y_val = train_test_split(
+        X_dev, y_dev, test_size=0.25, random_state=42, stratify=y_dev)
+
+    log(f"  Split: Train {len(y_tr):,} (60%) / Val {len(y_val):,} (20%) / Test {len(y_te):,} (20%)")
+
     scaler = MinMaxScaler()
-    X_tr = scaler.fit_transform(X_tr)     # fit เฉพาะ train
-    X_te = scaler.transform(X_te)
+    X_tr  = scaler.fit_transform(X_tr)      # fit เฉพาะ train
+    X_val = scaler.transform(X_val)
+    X_te  = scaler.transform(X_te)
 
     minority = min((y_tr == 0).mean(), (y_tr == 1).mean())
     use_smote = (minority < SMOTE_MINORITY_THRESHOLD) if use_smote_override is None else use_smote_override
@@ -358,23 +372,30 @@ def train_one_attack(df, label_col, model_type, epochs=EPOCHS_DEFAULT,
         model = train_nn(X_tr, y_tr, X_tr.shape[1],
                          int((y_tr == 0).sum()), int((y_tr == 1).sum()),
                          epochs, weight_mode, log=log)
-        y_prob = predict_proba_nn(model, X_te)
+        y_prob_val = predict_proba_nn(model, X_val)
+        y_prob_te  = predict_proba_nn(model, X_te)
         input_dim = X_tr.shape[1]
     else:
         model = train_xgboost(X_tr, y_tr)
-        y_prob = model.predict_proba(X_te)[:, 1]
+        y_prob_val = model.predict_proba(X_val)[:, 1]
+        y_prob_te  = model.predict_proba(X_te)[:, 1]
         input_dim = None
 
-    thr = find_best_threshold(y_te, y_prob)
-    y_pred = (y_prob >= thr).astype(int)
+    # tune threshold บน val (ไม่ใช่ test อีกต่อไป)
+    thr = find_best_threshold(y_val, y_prob_val)
+    log(f"  Threshold tuned on Val set: {thr:.4f}")
+
+    # วัดผลสุดท้ายบน test (clean evaluation)
+    y_pred = (y_prob_te >= thr).astype(int)
     p, r, f1, _ = precision_recall_fscore_support(y_te, y_pred, average="binary", zero_division=0)
     try:
-        auc = roc_auc_score(y_te, y_prob)
+        auc = roc_auc_score(y_te, y_prob_te)
     except Exception:
         auc = float("nan")
     metrics = dict(precision=float(p), recall=float(r), f1=float(f1), auc=float(auc),
-                   threshold=thr, n_train=int(len(y_tr)), n_test=int(len(y_te)))
+                   threshold=thr, n_train=int(len(y_tr)),
+                   n_val=int(len(y_val)), n_test=int(len(y_te)))
     return dict(attack=attack, model=model, model_type=model_type, scaler=scaler,
                 threshold=thr, features=features, input_dim=input_dim,
                 metrics=metrics, cm=confusion_matrix(y_te, y_pred),
-                y_te=y_te, y_prob=y_prob)
+                y_te=y_te, y_prob=y_prob_te)
