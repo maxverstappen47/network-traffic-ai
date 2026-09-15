@@ -488,8 +488,8 @@ st.markdown("""
 
 
 # ─── Tabs ───────────────────────────────────────────
-tab_detect, tab_feat, tab_dash = st.tabs(
-    ["🔎 ตรวจจับ", "🧹 Feature Tool", "📊 Dashboard"])
+tab_detect, tab_dash = st.tabs(
+    ["🔎 ตรวจจับ", "📊 Dashboard"])
 
 
 # ═════════════════════════════════════════════════════
@@ -744,136 +744,7 @@ with tab_detect:
 
 
 # ═════════════════════════════════════════════════════
-# TAB 2: FEATURE TOOL
-# ═════════════════════════════════════════════════════
-with tab_feat:
-    st.markdown("""
-    <div class="info-card">
-        <p>🧹 เครื่องมือสำรวจ/ตัด feature แยกต่างหาก — ไม่กระทบแท็บตรวจจับ ·
-        ใช้สำหรับเตรียมไฟล์ก่อนเทรนใหม่ หรือวินิจฉัยไฟล์จากแหล่งอื่น</p>
-    </div>
-    """, unsafe_allow_html=True)
-
-    up_feat = st.file_uploader("อัปโหลดไฟล์สำหรับสำรวจ feature",
-                                type=["xlsx", "xls", "csv"], key="feat_up")
-
-    if up_feat is None:
-        st.markdown("""
-        <div class="upload-placeholder">
-            <div class="icon">
-                <svg viewBox="0 0 24 24" width="48" height="48" fill="none"
-                     stroke="#334155" stroke-width="1.5" style="margin:0 auto;">
-                    <circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/>
-                </svg>
-            </div>
-            <div class="title">Upload a file to explore features</div>
-            <div class="sub">Feature stats, compatibility check, RF baseline</div>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        with st.spinner("กำลังโหลดข้อมูล..."):
-            df_ft = _load(up_feat.getvalue(), up_feat.name)
-
-        label_col_ft = core.detect_label_column(df_ft)
-        has_lbl_ft = label_col_ft is not None
-        feats_ft = [c for c in df_ft.columns if c != label_col_ft]
-
-        fc1, fc2, fc3 = st.columns(3)
-        fc1.metric("แถว", f"{len(df_ft):,}")
-        fc2.metric("Features", len(feats_ft))
-        fc3.metric("มี Label?", "มี ✅" if has_lbl_ft else "ไม่มี")
-
-        # compatibility
-        comp = core.compatibility_check(feats_ft)
-        with st.expander(f"🔍 เช็คความเข้ากันได้ — ใกล้ {comp['best_set']} "
-                         f"({comp['overlap']}/{comp['ref_size']})"):
-            if not comp["missing"] and not comp["extra"]:
-                st.markdown('<span class="pill-ok">✅ feature ตรงชุดมาตรฐานพอดี</span>', unsafe_allow_html=True)
-            else:
-                if comp["missing"]:
-                    st.warning(f"ขาด {len(comp['missing'])}: {', '.join(comp['missing'])}")
-                if comp["extra"]:
-                    st.info(f"เกิน {len(comp['extra'])}: {', '.join(comp['extra'])}")
-
-        # stats
-        st.markdown("**สถิติราย feature**")
-        stats = core.feature_stats(df_ft, feats_ft)
-        st.dataframe(stats, use_container_width=True, height=260)
-
-        # auto-drop
-        cc1, cc2 = st.columns(2)
-        with cc1:
-            drop_nzv = st.checkbox("ตัด feature ค่าคงที่ (variance≈0)", value=True, key="ft_nzv")
-        with cc2:
-            corr_thr = st.slider("ตัด feature correlation สูงเกิน",
-                                  0.90, 1.00, 0.98, 0.01, key="ft_corr")
-
-        suggested = core.auto_drop_suggestion(df_ft, feats_ft, corr_thr, drop_nzv)
-        if suggested:
-            st.caption(f"แนะนำให้ตัด ({len(suggested)}): {', '.join(suggested)}")
-
-        default_keep = [f for f in feats_ft if f not in suggested]
-        selected = st.multiselect("feature ที่จะเก็บไว้ (เอาออก = ตัดทิ้ง)",
-                                  options=feats_ft, default=default_keep, key="ft_sel")
-        st.write(f"เก็บไว้ **{len(selected)}** / {len(feats_ft)}")
-
-        # RF baseline
-        if has_lbl_ft and selected:
-            st.markdown("**RandomForest Baseline** (วินิจฉัย)")
-            rc1, rc2 = st.columns(2)
-            with rc1:
-                quick = st.checkbox("Quick mode", value=len(df_ft) > 80000, key="ft_quick")
-            with rc2:
-                n_est = st.slider("n_estimators", 50, 300, 150, 50, key="ft_nest")
-            if st.button("▶️ รัน RF baseline", key="ft_rf"):
-                y, _ = core.make_binary_target(df_ft, label_col_ft)
-                with st.spinner("กำลังเทรน RandomForest..."):
-                    res = core.run_random_forest(
-                        df_ft, selected, y,
-                        subsample_n=min(60000, len(df_ft)) if quick else None,
-                        n_estimators=n_est)
-                st.session_state["rf"] = res
-            if "rf" in st.session_state:
-                res = st.session_state["rf"]
-                rm1, rm2, rm3 = st.columns(3)
-                rm1.metric("ROC-AUC", f"{res['auc']:.4f}")
-                rm2.metric("PR-AUC", f"{res['ap']:.4f}")
-                rm3.metric("F1", f"{res['f1']:.3f}")
-                auc = res["auc"]
-                if auc >= 0.99:
-                    st.success("🟢 feature ดีมาก — ถ้าโมเดลจริงพลาด ปัญหาอยู่ที่ config/threshold")
-                elif auc >= 0.95:
-                    st.info("🟡 feature ใช้ได้ดี")
-                elif auc >= 0.85:
-                    st.warning("🟠 feature พอใช้ — ควรทบทวน")
-                else:
-                    st.error("🔴 มีปัญหาที่ feature/data")
-
-                imp = pd.DataFrame({"feature": res["features"],
-                                    "importance": res["importances"]}).sort_values("importance")
-                fig, ax = styled_fig(5, max(3, 0.25 * len(imp)))
-                ax.barh(imp["feature"], imp["importance"], color="#3b82f6",
-                        edgecolor="white", linewidth=0.5)
-                ax.set_title("Feature Importance (RF)", fontsize=11,
-                             fontweight="bold", color="#e2e8f0")
-                fig.tight_layout()
-                st.pyplot(fig)
-                plt.close(fig)
-
-        # export
-        if selected:
-            st.markdown("**Export ไฟล์ที่ตัดแล้ว**")
-            cols = selected + ([label_col_ft] if has_lbl_ft else [])
-            st.download_button(
-                "⬇️ ดาวน์โหลด .csv",
-                df_ft[cols].to_csv(index=False).encode("utf-8-sig"),
-                file_name=up_feat.name.rsplit(".", 1)[0] + "_selected.csv",
-                mime="text/csv",
-                use_container_width=True)
-
-
-# ═════════════════════════════════════════════════════
-# TAB 3: DASHBOARD
+# TAB 2: DASHBOARD
 # ═════════════════════════════════════════════════════
 with tab_dash:
     if not bundles:
