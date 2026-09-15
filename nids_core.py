@@ -60,6 +60,117 @@ FEATURE_SET_B = [  # DDoS, WebAttack (24)
 CANONICAL_SETS = {"Set A (Bot/PortScan, 26)": FEATURE_SET_A,
                   "Set B (DDoS/WebAttack, 24)": FEATURE_SET_B}
 
+# =====================================================
+# Column alias mapping: ชื่อคอลัมน์จากแหล่งอื่น → ชื่อมาตรฐาน 2017
+# รองรับ CIC-IDS 2018 และ dataset อื่นที่ใช้ชื่อต่างออกไป
+# =====================================================
+COLUMN_ALIASES = {
+    # CIC-IDS 2018 → 2017
+    "TotLen Fwd Pkts":   "Total Length of Fwd Packets",
+    "Fwd Pkt Len Max":   "Fwd Packet Length Max",
+    "Fwd Pkt Len Mean":  "Fwd Packet Length Mean",
+    "Fwd Pkt Len Std":   "Fwd Packet Length Std",
+    "Bwd Pkt Len Std":   "Bwd Packet Length Std",
+    "Bwd Pkt Len Max":   "Bwd Packet Length Max",
+    "Bwd Pkt Len Mean":  "Bwd Packet Length Mean",
+    "Flow Byts/s":       "Flow Bytes/s",
+    "Flow Pkts/s":       "Flow Packets/s",
+    "Bwd Pkts/s":        "Bwd Packets/s",
+    "Fwd Pkts/s":        "Fwd Packets/s",
+    "Pkt Len Max":       "Max Packet Length",
+    "Pkt Len Mean":      "Packet Length Mean",
+    "Pkt Len Var":       "Packet Length Variance",
+    "FIN Flag Cnt":      "FIN Flag Count",
+    "RST Flag Cnt":      "RST Flag Count",
+    "PSH Flag Cnt":      "PSH Flag Count",
+    "ACK Flag Cnt":      "ACK Flag Count",
+    "Init Fwd Win Byts": "Init_Win_bytes_forward",
+    "Init Bwd Win Byts": "Init_Win_bytes_backward",
+    "Dst Port":          "Destination Port",
+    "Tot Fwd Pkts":      "Total Fwd Packets",
+    "TotLen Bwd Pkts":   "Total Length of Bwd Packets",
+    "Fwd IAT Mean":      "Fwd IAT Mean",
+    "Fwd IAT Std":       "Fwd IAT Std",
+    "Bwd IAT Std":       "Bwd IAT Std",
+}
+
+
+def auto_map_columns(df):
+    """ตรวจสอบและ rename คอลัมน์อัตโนมัติ ให้ตรงกับชื่อมาตรฐาน (2017)
+    Returns: (df_renamed, renamed_dict)
+        - df_renamed: DataFrame ที่ rename แล้ว
+        - renamed_dict: {old_name: new_name} เฉพาะคอลัมน์ที่เปลี่ยน
+    """
+    rename_map = {}
+    for col in df.columns:
+        col_stripped = col.strip()
+        if col_stripped in COLUMN_ALIASES:
+            new_name = COLUMN_ALIASES[col_stripped]
+            # rename เฉพาะเมื่อชื่อใหม่ยังไม่มีอยู่แล้ว
+            if new_name not in df.columns:
+                rename_map[col] = new_name
+    if rename_map:
+        df = df.rename(columns=rename_map)
+    return df, rename_map
+
+
+def auto_trim_features(df, attack_name=None):
+    """ตัด feature ให้เหลือเฉพาะที่โมเดลต้องการ
+    1. auto-rename ก่อน
+    2. ถ้าระบุ attack_name → ใช้ feature list จาก bundle (meta)
+       ถ้าไม่ระบุ → ใช้ canonical set ที่ match มากที่สุด
+    3. คืน DataFrame ที่ตัดแล้ว + สรุปสิ่งที่ทำ
+
+    Returns: (df_trimmed, summary_dict)
+    """
+    df, renamed = auto_map_columns(df)
+
+    label_col = detect_label_column(df)
+    feats = [c for c in df.columns if c != label_col]
+
+    # หา target feature set
+    if attack_name:
+        try:
+            _, meta = load_bundle(attack_name)
+            target_features = meta["features"]
+            set_name = f"{attack_name} model"
+        except Exception:
+            target_features = None
+            set_name = None
+    else:
+        target_features = None
+        set_name = None
+
+    if target_features is None:
+        # auto-detect: เลือก canonical set ที่ overlap มากที่สุด
+        best_name, best_overlap = None, -1
+        for sname, sset in CANONICAL_SETS.items():
+            ov = len(set(feats) & set(sset))
+            if ov > best_overlap:
+                best_name, best_overlap = sname, ov
+        target_features = CANONICAL_SETS[best_name]
+        set_name = best_name
+
+    present = [f for f in target_features if f in df.columns]
+    missing = [f for f in target_features if f not in df.columns]
+    extra = [f for f in feats if f not in target_features]
+
+    # ตัดเหลือเฉพาะที่ต้องการ + Label (ถ้ามี)
+    keep_cols = present + ([label_col] if label_col else [])
+    df_trimmed = df[keep_cols].copy()
+
+    summary = {
+        "renamed": renamed,
+        "target_set": set_name,
+        "target_count": len(target_features),
+        "present": present,
+        "missing": missing,
+        "extra_removed": extra,
+        "kept_count": len(present),
+        "has_label": label_col is not None,
+    }
+    return df_trimmed, summary
+
 
 # =====================================================
 # โมเดล NN (เหมือน v4)
