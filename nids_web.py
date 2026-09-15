@@ -526,6 +526,22 @@ with tab_detect:
         with st.spinner("กำลังโหลดข้อมูล..."):
             df_det = _load(up_detect.getvalue(), up_detect.name)
 
+        # Auto-map columns (2018→2017) ก่อนตรวจจับ
+        df_det, renamed_det = core.auto_map_columns(df_det)
+        if renamed_det:
+            st.markdown(f"""
+            <div style="background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25);
+                        border-radius:12px; padding:.6rem 1rem; margin-bottom:.8rem;">
+                <span style="color:#4ade80; font-weight:600; font-size:.85rem;">
+                    🔄 Auto-mapped {len(renamed_det)} column(s)
+                </span>
+                <span style="color:#64748b; font-size:.78rem; margin-left:.5rem;">
+                    {', '.join(f'{o}→{n}' for o, n in list(renamed_det.items())[:5])}
+                    {'...' if len(renamed_det) > 5 else ''}
+                </span>
+            </div>
+            """, unsafe_allow_html=True)
+
         label_col_det = core.detect_label_column(df_det)
         has_lbl_det = label_col_det is not None
         feats_det = [c for c in df_det.columns if c != label_col_det]
@@ -767,12 +783,70 @@ with tab_feat:
                 </svg>
             </div>
             <div class="title">Upload a file to explore features</div>
-            <div class="sub">Feature stats, compatibility check, RF baseline</div>
+            <div class="sub">Auto-mapping (2018→2017) · Feature stats · RF baseline</div>
         </div>
         """, unsafe_allow_html=True)
     else:
         with st.spinner("กำลังโหลดข้อมูล..."):
             df_ft = _load(up_feat.getvalue(), up_feat.name)
+
+        # ─── Auto-map columns (2018→2017 naming) ───
+        df_ft, renamed_map = core.auto_map_columns(df_ft)
+        if renamed_map:
+            st.markdown(f"""
+            <div style="background:rgba(34,197,94,.08); border:1px solid rgba(34,197,94,.25);
+                        border-radius:12px; padding:.8rem 1.2rem; margin-bottom:1rem;">
+                <div style="font-weight:600; color:#4ade80; font-size:.9rem; margin-bottom:.4rem;">
+                    🔄 Auto-mapped {len(renamed_map)} column(s) to standard names
+                </div>
+                <div style="font-size:.78rem; color:#94a3b8; font-family:'JetBrains Mono',monospace;">
+                    {"<br>".join(f"{old} → {new}" for old, new in renamed_map.items())}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        # ─── Auto-trim to model features ───
+        trim_mode = st.radio(
+            "โหมดตัด feature",
+            ["🔧 Manual — เลือกเอง", "✂️ Auto-trim — ตัดตามโมเดลอัตโนมัติ"],
+            horizontal=True, key="ft_mode")
+
+        if trim_mode.startswith("✂️"):
+            trim_target = st.selectbox(
+                "ตัดตาม",
+                ["Auto-detect (ใกล้ชุดไหนตัดตามนั้น)"] + bundles,
+                key="ft_trim_target")
+            atk_name = None if trim_target.startswith("Auto") else trim_target
+
+            df_trimmed, trim_summary = core.auto_trim_features(df_ft, attack_name=atk_name)
+
+            st.markdown(f"""
+            <div style="background:rgba(6,182,212,.08); border:1px solid rgba(6,182,212,.25);
+                        border-radius:12px; padding:.8rem 1.2rem; margin-bottom:1rem;">
+                <div style="font-weight:600; color:#22d3ee; font-size:.9rem; margin-bottom:.4rem;">
+                    ✂️ Trimmed: {trim_summary['kept_count']}/{trim_summary['target_count']}
+                    features ({trim_summary['target_set']})
+                </div>
+                <div style="font-size:.78rem; color:#94a3b8;">
+                    {'✅ feature ครบ!' if not trim_summary['missing'] else
+                     f"⚠️ ขาด {len(trim_summary['missing'])}: {', '.join(trim_summary['missing'])}"}
+                    {'<br>ตัดออก ' + str(len(trim_summary['extra_removed'])) + ' feature ที่ไม่ต้องการ'
+                     if trim_summary['extra_removed'] else ''}
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+
+            # export trimmed file
+            st.download_button(
+                f"⬇️ ดาวน์โหลดไฟล์ที่ตัดแล้ว ({trim_summary['kept_count']} features"
+                f"{' + Label' if trim_summary['has_label'] else ''})",
+                df_trimmed.to_csv(index=False).encode("utf-8-sig"),
+                file_name=up_feat.name.rsplit(".", 1)[0] + "_trimmed.csv",
+                mime="text/csv",
+                use_container_width=True)
+
+            # ใช้ df_trimmed สำหรับการวิเคราะห์ต่อ
+            df_ft = df_trimmed
 
         label_col_ft = core.detect_label_column(df_ft)
         has_lbl_ft = label_col_ft is not None
